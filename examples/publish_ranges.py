@@ -105,7 +105,7 @@ class LoggingExample:
         print('Connected to %s' % link_uri)
 
         # The definition of the logconfig can be made before connecting
-        self._lg_stab = LogConfig(name='RANGES', period_in_ms=50)
+        self._lg_stab = LogConfig(name='RANGES', period_in_ms=10)
         self._lg_stab.add_variable('range.back', 'uint16_t')
         self._lg_stab.add_variable('range.left', 'uint16_t')
         self._lg_stab.add_variable('range.front', 'uint16_t')
