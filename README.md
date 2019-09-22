@@ -110,7 +110,7 @@ sudo udevadm trigger
 3. cd crazyflie-lib-python
 4. pip install -e .
 5. sudo nano /etc/udev/rules.d/99-crazyflie.rules
-5.1 Add the following line to the rules:
+and add the following line to the rules:
     SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
 6. Make sure roscore is running
 7. Exectue using: python ./examples/publish_ranges.py 
