@@ -38,6 +38,21 @@ from cflib.crazyflie.log import LogConfig
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+import rospy
+from std_msgs.msg import String
+from sensor_msgs.msg import Range
+from sensor_msgs.msg import LaserScan
+
+
+#def talker():
+#    pub = rospy.Publisher('ranges', String, queue_size=10)
+#    rospy.init_node('talker', anonymous=True)
+#    # rate = rospy.Rate(10) # 10hz
+#    while not rospy.is_shutdown():
+#        hello_str = "hello world %s" % rospy.get_time()
+#        rospy.loginfo(hello_str)
+#        pub.publish(hello_str)
+#        rate.sleep()
 
 class LoggingExample:
     """
@@ -55,6 +70,23 @@ class LoggingExample:
         self._cf.disconnected.add_callback(self._disconnected)
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)
+	self.pubLS = rospy.Publisher('cf_tof_ranges', LaserScan, queue_size=10)
+	self.pubRup = rospy.Publisher('cf_tof_up', Range, queue_size=10)
+	
+	rospy.init_node('talker', anonymous=True)
+	self.pubLS_msg = LaserScan()
+	self.pubLS_msg.angle_min = 0.0
+	self.pubLS_msg.angle_max = 3.14159/2*3
+	self.pubLS_msg.angle_increment = 3.14159/2
+	self.pubLS_msg.range_min = 0.0
+	self.pubLS_msg.range_max = 100.0
+	self.pubLS_msg.header.frame_id = 'cf_base'
+
+	self.range_msg_up = Range()
+	self.range_msg_up.header.frame_id = 'cf_base'
+	self.range_msg_up.min_range = 0.0
+	self.range_msg_up.max_range = 100.0
+	self.range_msg_up.field_of_view = 0.131  # 7.5 degrees
 
         print('Connecting to %s' % link_uri)
 
@@ -70,10 +102,16 @@ class LoggingExample:
         print('Connected to %s' % link_uri)
 
         # The definition of the logconfig can be made before connecting
-        self._lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
-        self._lg_stab.add_variable('stabilizer.roll', 'float')
-        self._lg_stab.add_variable('stabilizer.pitch', 'float')
-        self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        self._lg_stab = LogConfig(name='RANGES', period_in_ms=10)
+        #self._lg_stab.add_variable('stabilizer.roll', 'float')
+        #self._lg_stab.add_variable('stabilizer.pitch', 'float')
+        #self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        self._lg_stab.add_variable('range.back', 'uint16_t')
+        self._lg_stab.add_variable('range.left', 'uint16_t')
+        self._lg_stab.add_variable('range.front', 'uint16_t')
+        self._lg_stab.add_variable('range.right', 'uint16_t')
+        self._lg_stab.add_variable('range.up', 'uint16_t')
+
 
         # Adding the configuration cannot be done until a Crazyflie is
         # connected, since we need to check that the variables we
@@ -93,8 +131,8 @@ class LoggingExample:
             print('Could not add Stabilizer log config, bad configuration.')
 
         # Start a timer to disconnect in 10s
-        t = Timer(5, self._cf.close_link)
-        t.start()
+        # t = Timer(5, self._cf.close_link)
+        # t.start()
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
@@ -102,7 +140,19 @@ class LoggingExample:
 
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback froma the log API when data arrives"""
-        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
+        # print('[%d][%s]: %s' % (timestamp, logconf.name, data))
+	#rangeStr = '[%d][%s]: %s' % (timestamp, logconf.name, data)
+	#self.pub.publish(rangeStr)
+	now = rospy.get_rostime()
+	self.pubLS_msg.header.stamp.secs = now.secs
+	self.pubLS_msg.header.stamp.nsecs = now.nsecs
+	self.pubLS_msg.ranges = [data['range.front']/1000.0, data['range.left']/1000.0, data['range.back']/1000.0, data['range.right']/1000.0]
+	self.pubLS.publish(self.pubLS_msg)
+
+	self.range_msg_up.range = data['range.up']/1000.0
+	self.range_msg_up.header.stamp.secs = now.secs
+	self.range_msg_up.header.stamp.nsecs = now.nsecs
+	self.pubRup.publish(self.range_msg_up)
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -139,5 +189,8 @@ if __name__ == '__main__':
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we
     # are just waiting until we are disconnected.
-    while le.is_connected:
-        time.sleep(1)
+    #while le.is_connected:
+    #    time.sleep(1)
+
+    rospy.spin()
+
