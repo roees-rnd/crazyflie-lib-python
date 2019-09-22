@@ -103,6 +103,17 @@ sudo udevadm trigger
 
 [cfclient]: https://www.github.com/bitcraze/crazyflie-clients-python
 
+#### Installation Steps
+
+1. Make sure python2 pip is installed (sudo apt install python-pip)
+2. git clone https://github.com/roees-rnd/crazyflie-lib-python.git
+3. cd crazyflie-lib-python
+4. pip install -e .
+5. sudo nano /etc/udev/rules.d/99-crazyflie.rules
+and add the following line to the rules:
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664", GROUP="plugdev"
+6. Make sure roscore is running
+7. Exectue using: python ./examples/publish_ranges.py 
 
 ## Contribute
 
