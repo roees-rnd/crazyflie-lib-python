@@ -56,6 +56,10 @@ from sensor_msgs.msg import LaserScan
 #        pub.publish(hello_str)
 #        rate.sleep()
 
+import signal
+import sys
+
+
 class LoggingExample:
     """
     Simple logging example class that logs the Stabilizer from a supplied
@@ -99,6 +103,8 @@ class LoggingExample:
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
 
+	signal.signal(signal.SIGINT, self._signal_handler)
+
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
@@ -129,7 +135,8 @@ class LoggingExample:
                   '{} not found in TOC'.format(str(e)))
         except AttributeError:
             print('Could not add Stabilizer log config, bad configuration.')
-
+#	except KeyboardInterrupt:
+#	    rethrow()
         # Start a timer to disconnect in 10s
         # t = Timer(5, self._cf.close_link)
         # t.start()
@@ -170,11 +177,12 @@ class LoggingExample:
         print('Disconnected from %s' % link_uri)
         self.is_connected = False
 
-#    def publish_ros(self):
-#        self.pubRup.publish(self.range_msg_up)
-#        self.pubLS.publish(self.pubLS_msg)
-#        self.pub_rate.sleep()
-
+    def _signal_handler(self, sig, frame):
+        print('You pressed Ctrl+C!')
+	self.is_connected = False
+	self._cf.close_link()
+        sys.exit(0)
+	
 
 if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
