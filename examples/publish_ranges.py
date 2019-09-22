@@ -44,6 +44,8 @@ from sensor_msgs.msg import Range
 from sensor_msgs.msg import LaserScan
 
 
+
+
 #def talker():
 #    pub = rospy.Publisher('ranges', String, queue_size=10)
 #    rospy.init_node('talker', anonymous=True)
@@ -70,6 +72,7 @@ class LoggingExample:
         self._cf.disconnected.add_callback(self._disconnected)
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)
+
 	self.pubLS = rospy.Publisher('cf_tof_ranges', LaserScan, queue_size=10)
 	self.pubRup = rospy.Publisher('cf_tof_up', Range, queue_size=10)
 	
@@ -102,10 +105,7 @@ class LoggingExample:
         print('Connected to %s' % link_uri)
 
         # The definition of the logconfig can be made before connecting
-        self._lg_stab = LogConfig(name='RANGES', period_in_ms=10)
-        #self._lg_stab.add_variable('stabilizer.roll', 'float')
-        #self._lg_stab.add_variable('stabilizer.pitch', 'float')
-        #self._lg_stab.add_variable('stabilizer.yaw', 'float')
+        self._lg_stab = LogConfig(name='RANGES', period_in_ms=50)
         self._lg_stab.add_variable('range.back', 'uint16_t')
         self._lg_stab.add_variable('range.left', 'uint16_t')
         self._lg_stab.add_variable('range.front', 'uint16_t')
@@ -146,13 +146,13 @@ class LoggingExample:
 	now = rospy.get_rostime()
 	self.pubLS_msg.header.stamp.secs = now.secs
 	self.pubLS_msg.header.stamp.nsecs = now.nsecs
-	self.pubLS_msg.ranges = [data['range.front']/1000.0, data['range.left']/1000.0, data['range.back']/1000.0, data['range.right']/1000.0]
-	self.pubLS.publish(self.pubLS_msg)
+	self.pubLS_msg.ranges = [data['range.front']*0.001, data['range.left']*0.001, data['range.back']*0.001, data['range.right']*0.001]
+	#self.pubLS.publish(self.pubLS_msg)
 
-	self.range_msg_up.range = data['range.up']/1000.0
+	self.range_msg_up.range = data['range.up']*0.001
 	self.range_msg_up.header.stamp.secs = now.secs
 	self.range_msg_up.header.stamp.nsecs = now.nsecs
-	self.pubRup.publish(self.range_msg_up)
+	#self.pubRup.publish(self.range_msg_up)
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -169,6 +169,11 @@ class LoggingExample:
         """Callback when the Crazyflie is disconnected (called in all cases)"""
         print('Disconnected from %s' % link_uri)
         self.is_connected = False
+
+#    def publish_ros(self):
+#        self.pubRup.publish(self.range_msg_up)
+#        self.pubLS.publish(self.pubLS_msg)
+#        self.pub_rate.sleep()
 
 
 if __name__ == '__main__':
@@ -192,5 +197,10 @@ if __name__ == '__main__':
     #while le.is_connected:
     #    time.sleep(1)
 
-    rospy.spin()
+    pub_rate = rospy.Rate(20) # hz
+    while not rospy.is_shutdown():
+        le.pubRup.publish(le.range_msg_up)
+        le.pubLS.publish(le.pubLS_msg)
+	pub_rate.sleep()
+
 
